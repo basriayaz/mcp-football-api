@@ -1,0 +1,15 @@
+{
+  "mcpBundleVersion": "1.0",
+  "server": {
+    "command": "node",
+    "args": ["dist/index.js"],
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts",
+    "package.json"
+  ]
+}
