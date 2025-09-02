@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "football-api": {
+      "command": "node",
+      "args": ["/Users/basriayaz/Desktop/mcp_yeni/mcp-football-api/dist/index.js"],
+      "env": {
+        "FOOTBALL_API_URL": "http://185.240.104.144"
+      }
+    }
+  }
+}
