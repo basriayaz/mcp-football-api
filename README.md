@@ -9,6 +9,9 @@ MCP (Model Context Protocol) server that provides football match analysis, odds 
 - Team and league information
 - Date-based match queries
 - Cache management
+- **Server-Sent Events (SSE) streaming support**
+- **HTTP REST API endpoints**
+- Dual transport support (Stdio + HTTP)
 
 ## Installation
 
@@ -123,22 +126,67 @@ In Cursor IDE or Claude Desktop, you can use natural language:
 "Search for teams with 'Manchester' in their name"
 ```
 
+## HTTP Server with SSE Support
+
+The server supports both traditional Stdio transport and HTTP with Server-Sent Events (SSE) streaming.
+
+### Starting HTTP Server
+
+```bash
+# Development mode with HTTP/SSE support
+npm run dev:http
+
+# Production mode with HTTP/SSE support
+npm run start:http
+```
+
+### Environment Variables
+
+- `USE_HTTP=true` - Enable HTTP server mode
+- `HTTP_PORT=3000` - HTTP server port (default: 3000)
+- `FOOTBALL_API_URL` - Base URL for the Football API (default: http://185.240.104.144)
+
+### HTTP Endpoints
+
+- `GET /health` - Server health check
+- `GET /sse` - MCP Server-Sent Events endpoint for streaming
+- `POST /messages?sessionId=<id>` - MCP message endpoint for SSE sessions
+
+### Example HTTP Usage
+
+```javascript
+// Health check
+fetch('http://localhost:3000/health')
+  .then(res => res.json())
+  .then(data => console.log(data));
+
+// SSE streaming connection
+const eventSource = new EventSource('http://localhost:3000/sse');
+eventSource.onmessage = (event) => {
+  console.log('Received MCP message:', event.data);
+};
+```
+
 ## Development
 
 ```bash
-# Run in development mode
+# Run in development mode (Stdio)
 npm run dev
+
+# Run in development mode (HTTP/SSE)
+npm run dev:http
 
 # Build for production
 npm run build
 
-# Start production server
+# Start production server (Stdio)
 npm start
+
+# Start production server (HTTP/SSE)
+npm run start:http
 ```
 
-## Environment Variables
 
-- `FOOTBALL_API_URL` - Base URL for the Football API (default: http://185.240.104.144)
 
 ## License
 

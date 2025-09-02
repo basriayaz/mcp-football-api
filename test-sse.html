@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MCP Football API SSE Test</title>
+</head>
+<body>
+    <h1>MCP Football API SSE Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    <button onclick="testHealth()">Test Health</button>
+    <button onclick="connectSSE()">Connect SSE</button>
+    <button onclick="disconnectSSE()">Disconnect</button>
+
+    <script>
+        let eventSource = null;
+
+        function testHealth() {
+            fetch('http://localhost:3000/health')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('status').textContent = 'Health: ' + JSON.stringify(data);
+                })
+                .catch(error => {
+                    document.getElementById('status').textContent = 'Health check failed: ' + error.message;
+                });
+        }
+
+        function connectSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            document.getElementById('status').textContent = 'Connecting to SSE...';
+            document.getElementById('messages').innerHTML = '';
+
+            eventSource = new EventSource('http://localhost:3000/sse');
+
+            eventSource.onopen = function(event) {
+                document.getElementById('status').textContent = 'SSE Connected!';
+                console.log('SSE connection opened', event);
+            };
+
+            eventSource.onmessage = function(event) {
+                const messagesDiv = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.textContent = 'Received: ' + event.data;
+                messagesDiv.appendChild(messageDiv);
+                console.log('SSE message received:', event.data);
+            };
+
+            eventSource.onerror = function(event) {
+                document.getElementById('status').textContent = 'SSE Error: ' + JSON.stringify(event);
+                console.error('SSE error:', event);
+            };
+        }
+
+        function disconnectSSE() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                document.getElementById('status').textContent = 'Disconnected';
+            }
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            testHealth();
+        };
+    </script>
+</body>
+</html>

@@ -1,10 +1,12 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   Tool
 } from '@modelcontextprotocol/sdk/types.js';
+import http from 'http';
 import { z } from 'zod';
 import axios from 'axios';
 
@@ -377,10 +379,14 @@ const server = new Server(
   },
   {
     capabilities: {
-      tools: {}
+      tools: {},
+      sse: {}
     }
   }
 );
+
+// Store SSE transports for session management
+const sseTransports: Record<string, SSEServerTransport> = {};
 
 // Handle tool listing
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -568,11 +574,106 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
+// HTTP Server port configuration
+const HTTP_PORT = parseInt(process.env.HTTP_PORT || '3000');
+const USE_HTTP = process.env.USE_HTTP === 'true';
+
+// HTTP Server for SSE support
+let httpServer: http.Server | null = null;
+
+if (USE_HTTP) {
+  httpServer = http.createServer(async (req, res) => {
+    // Handle CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(200);
+      res.end();
+      return;
+    }
+
+    // Health check endpoint
+    if (req.url === '/health' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'healthy',
+        server: 'mcp-football-api',
+        version: '1.0.0',
+        sse: true,
+        timestamp: new Date().toISOString()
+      }));
+      return;
+    }
+
+    // MCP SSE endpoint
+    if (req.url === '/sse' && req.method === 'GET') {
+      try {
+        const transport = new SSEServerTransport('/messages', res);
+        sseTransports[transport.sessionId] = transport;
+
+        res.on('close', () => {
+          delete sseTransports[transport.sessionId];
+          console.error(`SSE connection closed for session ${transport.sessionId}`);
+        });
+
+        await server.connect(transport);
+        console.error(`SSE connection established with session ${transport.sessionId}`);
+      } catch (error) {
+        console.error('SSE connection error:', error);
+        res.writeHead(500);
+        res.end('SSE connection failed');
+      }
+      return;
+    }
+
+    // MCP Messages endpoint for SSE
+    if (req.url?.startsWith('/messages') && req.method === 'POST') {
+      try {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const sessionId = url.searchParams.get('sessionId');
+
+        if (!sessionId || !sseTransports[sessionId]) {
+          res.writeHead(404);
+          res.end('Session not found');
+          return;
+        }
+
+        const transport = sseTransports[sessionId];
+        await transport.handlePostMessage(req, res);
+      } catch (error) {
+        console.error('Message handling error:', error);
+        res.writeHead(500);
+        res.end('Message handling failed');
+      }
+      return;
+    }
+
+    // 404 for other routes
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not found' }));
+  });
+
+  httpServer.listen(HTTP_PORT, () => {
+    console.error(`HTTP Server with SSE support started on port ${HTTP_PORT}`);
+    console.error(`SSE endpoint available at: http://localhost:${HTTP_PORT}/sse`);
+    console.error(`Health check available at: http://localhost:${HTTP_PORT}/health`);
+  });
+}
+
 // Start the server
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error('MCP Football API Server started');
+  if (USE_HTTP && httpServer) {
+    // HTTP mode with SSE support
+    console.error('MCP Football API Server started in HTTP mode with SSE support');
+    console.error(`HTTP Server running on port ${HTTP_PORT}`);
+  } else {
+    // Default Stdio mode (backward compatibility)
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error('MCP Football API Server started in Stdio mode');
+  }
 }
 
 main().catch((error) => {
