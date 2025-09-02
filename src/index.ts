@@ -575,8 +575,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 // HTTP Server port configuration
-const HTTP_PORT = parseInt(process.env.HTTP_PORT || '3000');
-const USE_HTTP = process.env.USE_HTTP === 'true';
+// Railway uses PORT environment variable
+const HTTP_PORT = parseInt(process.env.PORT || process.env.HTTP_PORT || '3000');
+const HTTP_HOST = process.env.HOST || '0.0.0.0'; // Railway requires 0.0.0.0
+const USE_HTTP = process.env.USE_HTTP === 'true' || !!process.env.PORT; // Auto-enable HTTP for Railway
 
 // HTTP Server for SSE support
 let httpServer: http.Server | null = null;
@@ -655,19 +657,20 @@ if (USE_HTTP) {
     res.end(JSON.stringify({ error: 'Not found' }));
   });
 
-  httpServer.listen(HTTP_PORT, () => {
-    console.error(`HTTP Server with SSE support started on port ${HTTP_PORT}`);
-    console.error(`SSE endpoint available at: http://localhost:${HTTP_PORT}/sse`);
-    console.error(`Health check available at: http://localhost:${HTTP_PORT}/health`);
+  httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
+    console.error(`HTTP Server with SSE support started on ${HTTP_HOST}:${HTTP_PORT}`);
+    console.error(`SSE endpoint available at: http://${HTTP_HOST}:${HTTP_PORT}/sse`);
+    console.error(`Health check available at: http://${HTTP_HOST}:${HTTP_PORT}/health`);
   });
 }
 
 // Start the server
 async function main() {
-  if (USE_HTTP && httpServer) {
-    // HTTP mode with SSE support
+  if (USE_HTTP) {
+    // HTTP mode with SSE support (Railway compatible)
     console.error('MCP Football API Server started in HTTP mode with SSE support');
-    console.error(`HTTP Server running on port ${HTTP_PORT}`);
+    console.error(`Server running on ${HTTP_HOST}:${HTTP_PORT}`);
+    console.error(`Environment: ${process.env.NODE_ENV || 'development'}`);
   } else {
     // Default Stdio mode (backward compatibility)
     const transport = new StdioServerTransport();

@@ -126,6 +126,39 @@ In Cursor IDE or Claude Desktop, you can use natural language:
 "Search for teams with 'Manchester' in their name"
 ```
 
+## Railway Deployment 🚂
+
+### Quick Deploy to Railway
+
+1. **Connect Repository:**
+   ```bash
+   # Push your code to GitHub
+   git add .
+   git commit -m "Ready for Railway deployment"
+   git push origin main
+   ```
+
+2. **Deploy on Railway:**
+   - Go to [railway.app](https://railway.app)
+   - Click "New Project" → "Deploy from GitHub"
+   - Select your repository
+   - Railway will auto-detect Node.js and use `railway.toml`
+
+3. **Set Environment Variables:**
+   - `FOOTBALL_API_URL` = `http://185.240.104.144`
+
+4. **Get Your URL:**
+   - Railway dashboard → Your project → Settings → Domains
+   - Your URL will be: `https://your-project-name.up.railway.app`
+
+### Railway Configuration
+
+The `railway.toml` file is already configured for:
+- ✅ Automatic HTTP mode detection
+- ✅ Health check on `/health`
+- ✅ Proper port handling (`$PORT` environment variable)
+- ✅ Production optimizations
+
 ## HTTP Server with SSE Support
 
 The server supports both traditional Stdio transport and HTTP with Server-Sent Events (SSE) streaming.
@@ -142,9 +175,14 @@ npm run start:http
 
 ### Environment Variables
 
+**For Railway Deployment:**
+- `USE_HTTP=true` - Enable HTTP server mode (auto-enabled on Railway)
+- `PORT` - Auto-set by Railway (use this instead of HTTP_PORT)
+- `FOOTBALL_API_URL` - Base URL for the Football API (default: http://185.240.104.144)
+
+**For Local Development:**
 - `USE_HTTP=true` - Enable HTTP server mode
 - `HTTP_PORT=3000` - HTTP server port (default: 3000)
-- `FOOTBALL_API_URL` - Base URL for the Football API (default: http://185.240.104.144)
 
 ### HTTP Endpoints
 

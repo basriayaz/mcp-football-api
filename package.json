@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "start:http": "USE_HTTP=true node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "dev:http": "USE_HTTP=true tsx watch src/index.ts"
+    "dev:http": "USE_HTTP=true tsx watch src/index.ts",
+    "railway:start": "node dist/index.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.4",
